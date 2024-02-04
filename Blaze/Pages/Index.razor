@@ -7,21 +7,30 @@
 
 <h1>Neutrino Telem</h1>
 <RadzenRow>
-	<RadzenTabs @ref="nodeTabs" RenderMode="TabRenderMode.Client" TabPosition="TabPosition.Left">
+	<RadzenTabs RenderMode="TabRenderMode.Client" TabPosition="TabPosition.Left">
 		<Tabs>
 			@foreach (var item in _nodes)
 			{
 				<RadzenTabsItem Text="@(item.Key)">
-					<RadzenTabs @ref="telemTabs" RenderMode="TabRenderMode.Client" TabPosition="TabPosition.Top">
+					<RadzenTabs RenderMode="TabRenderMode.Client" TabPosition="TabPosition.Top">
 						<Tabs>
 							@if (item.Value.Devices.Any())
 							{
-								<RadzenTabsItem Text="Devices" />
+								<RadzenTabsItem Text="Devices">
+									<RadzenDataGrid Data="@item.Value.Devices.Values" TItem="Device" AllowColumnResize="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
+										<Columns>
+											<RadzenDataGridColumn TItem="Device" Property="Name" Title="Name" SortOrder="SortOrder.Ascending" />
+											<RadzenDataGridColumn TItem="Device" Property="Value" Title="Value" Filterable="false" />
+											<RadzenDataGridColumn TItem="Device" Property="LastSeen" Title="Last Seen" Filterable="false" />
+										</Columns>
+									</RadzenDataGrid>
+								</RadzenTabsItem>
 							}
-							@if (item.Value.Console != string.Empty)
+							
+							@if (!String.IsNullOrEmpty(item.Value.Console))
 							{
 								<RadzenTabsItem Text="Console">
-									<RadzenTextArea @bind-Value="@item.Value.Console" Cols="100" Rows="50" />
+									<RadzenTextArea Value="@item.Value.Console" Cols="100" Rows="30" />
 								</RadzenTabsItem>
 							}
 						</Tabs>
@@ -38,22 +47,25 @@
 
 
 @code {
-	//UI to update
-	RadzenTabs nodeTabs;
-	RadzenTabs telemTabs;
-
 	private RelayClient _client = new RelayClient();
 	private Dictionary<string, Node> _nodes = new Dictionary<string, Node>();
-	private Node _selected;
 
 	protected override async Task OnInitializedAsync()
 	{
-		//_client.StateChanged += (s, e) =>
 		_client.TelemReceived += OnTelemReceived;
 
 		await _client.Connect();
-		//_nodes.Nodes.CollectionChanged += (s, e) => InvokeAsync(StateHasChanged);
 		_ = _client.ReceiveLoop();
+		_ = UpdateLoop();
+	}
+
+	private async Task UpdateLoop()
+	{
+		while (true)
+		{
+			await InvokeAsync(StateHasChanged);
+			await Task.Delay(100);
+		}
 	}
 
 	private void OnTelemReceived(object sender, Telem telem)
@@ -75,14 +87,12 @@
 			foreach (KeyValuePair<string, object> pair in telem.values)
 			{
 				if (!node.Devices.ContainsKey(pair.Key))
-					node.Devices.Add(pair.Key, new Device());
+					node.Devices.Add(pair.Key, new Device { Name = pair.Key });
 
 				Device device = node.Devices[pair.Key];
 				device.LastSeen = DateTime.Now;
 				device.Value = pair.Value;
 			}
 		}
-
-		InvokeAsync(StateHasChanged);
 	}
 }
