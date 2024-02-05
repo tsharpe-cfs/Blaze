@@ -1,4 +1,5 @@
 ﻿@page "/"
+@inject IJSRuntime JS
 @using Blaze.Json
 @using Blaze.Models
 @using System.Text
@@ -6,6 +7,8 @@
 <PageTitle>Neutrino Telem</PageTitle>
 
 <h1>Neutrino Telem</h1>
+<p>Websocket: @_client.State.ToString()</p>
+
 <RadzenRow>
 	<RadzenTabs RenderMode="TabRenderMode.Client" TabPosition="TabPosition.Left">
 		<Tabs>
@@ -17,7 +20,7 @@
 							@if (item.Value.Devices.Any())
 							{
 								<RadzenTabsItem Text="Devices">
-									<RadzenDataGrid Data="@item.Value.Devices.Values" TItem="Device" AllowColumnResize="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive">
+									<RadzenDataGrid Data="@item.Value.Devices.Values" TItem="Device" AllowColumnResize="true" AllowFiltering="true" FilterCaseSensitivity="FilterCaseSensitivity.CaseInsensitive" FilterMode="FilterMode.Simple">
 										<Columns>
 											<RadzenDataGridColumn TItem="Device" Property="Name" Title="Name" SortOrder="SortOrder.Ascending" />
 											<RadzenDataGridColumn TItem="Device" Property="Value" Title="Value" Filterable="false" />
@@ -29,8 +32,8 @@
 							
 							@if (!String.IsNullOrEmpty(item.Value.Console))
 							{
-								<RadzenTabsItem Text="Console">
-									<RadzenTextArea Value="@item.Value.Console" Cols="100" Rows="30" />
+								<RadzenTabsItem Text="Console" Disabled="true">
+									<RadzenTextArea Value="@item.Value.Console" Cols="160" Rows="25" />
 								</RadzenTabsItem>
 							}
 						</Tabs>
@@ -40,11 +43,6 @@
 		</Tabs>
 	</RadzenTabs>
 </RadzenRow>
-
-<RadzenFooter>
-	<RadzenLabel Text="@_client.State.ToString()" />
-</RadzenFooter>
-
 
 @code {
 	private RelayClient _client = new RelayClient();
@@ -64,7 +62,7 @@
 		while (true)
 		{
 			await InvokeAsync(StateHasChanged);
-			await Task.Delay(100);
+			await Task.Delay(500);
 		}
 	}
 
